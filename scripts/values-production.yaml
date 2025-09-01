@@ -1,0 +1,34 @@
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "eoapi.tealwaters.com"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  tls:
+    enabled: true
+    secretName: eoapi-tls
+
+serviceAccount:
+  create: false
+  name: "eoapi-workload-identity"
+
+# Enable workload identity for all services
+raster:
+  settings:
+    labels:
+      azure.workload.identity/use: "true"
+
+stac:
+  settings:
+    labels:
+      azure.workload.identity/use: "true"
+
+vector:
+  settings:
+    labels:
+      azure.workload.identity/use: "true"
+
+multidim:
+  settings:
+    labels:
+      azure.workload.identity/use: "true"

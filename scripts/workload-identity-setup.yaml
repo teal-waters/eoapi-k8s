@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    azure.workload.identity/client-id: "ffb3eff7-0132-4ac0-8d92-a898292d3135"
+  name: eoapi-workload-identity
+  namespace: default
