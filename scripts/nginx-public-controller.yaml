@@ -1,0 +1,7 @@
+apiVersion: approuting.kubernetes.azure.com/v1alpha1
+kind: NginxIngressController
+metadata:
+  name: nginx
+spec:
+  ingressClassName: nginx
+  controllerNamePrefix: nginx
