@@ -80,6 +80,10 @@ run_deployment() {
         log_info "Applying k3s local profile..."
         helm_cmd="$helm_cmd -f charts/eoapi/profiles/local/k3s.yaml"
     fi
+    if [[ -f "scripts/values-production.yaml" ]]; then
+        log_info "Applying TealWaters profile..."
+        helm_cmd="$helm_cmd -f scripts/values-production.yaml"
+    fi
 
     helm_cmd="$helm_cmd --set eoapi-notifier.config.sources[0].type=pgstac"
     helm_cmd="$helm_cmd --set eoapi-notifier.config.sources[0].config.connection.existingSecret.name=$RELEASE_NAME-pguser-eoapi"

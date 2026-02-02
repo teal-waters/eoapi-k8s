@@ -164,7 +164,7 @@ kubectl apply -f letsencrypt-issuer.yaml
 
 # 12. deploy eoapi to AKS cluster
 echo "Deploying eoapi to AKS cluster..."
-make -C .. deploy
+./scripts/deployment.sh run
 
 # 13. get the ingress IP addresses
 echo "Fetching Ingress IPs..."
