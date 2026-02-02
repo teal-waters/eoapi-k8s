@@ -2,13 +2,19 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vector-{{ $.Release.Name }}
+  name: {{ .Release.Name }}-vector
   labels:
-    app: vector-{{ .Release.Name }}
+    app: {{ .Release.Name }}-vector
+  {{- if .Values.vector.annotations }}
+  annotations:
+    {{- with .Values.vector.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
 spec:
   ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.port }}
   selector:
-    app: vector-{{ .Release.Name }}
+    app: {{ .Release.Name }}-vector
 {{- end }}

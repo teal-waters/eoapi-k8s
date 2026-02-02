@@ -1,0 +1,124 @@
+name: CI tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  HELM_VERSION: latest
+  PGO_VERSION: 5.7.4
+
+jobs:
+  fast-checks:
+    name: Simple tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Run linters
+        run: ./eoapi-cli test lint
+
+      - name: Validate Helm values schema
+        run: ./eoapi-cli test schema
+
+      - name: Check app version consistency
+        run: |
+          CHART_VERSION=$(yq '.appVersion' charts/eoapi/Chart.yaml)
+          IMAGE_TAG=$(yq '.stac.image.tag' charts/eoapi/values.yaml)
+          if [ "$CHART_VERSION" != "$IMAGE_TAG" ]; then
+            echo "Version mismatch: Chart.yaml appVersion ($CHART_VERSION) != values.yaml stac.image.tag ($IMAGE_TAG)"
+            exit 1
+          fi
+
+      - name: Run Helm unit tests
+        uses: d3adb5/helm-unittest-action@v2
+        with:
+          charts: charts/eoapi
+
+  integration-tests:
+    name: Integration tests
+    needs: fast-checks
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Set release name
+        run: echo "RELEASE_NAME=eoapi-${GITHUB_SHA::8}" >> "$GITHUB_ENV"
+
+      - name: Clean up disk space
+        run: |
+          echo "=== Disk space before cleanup ==="
+          df -h
+          echo "=== Docker cleanup ==="
+          docker system prune -af --volumes || true
+          echo "=== Remove unused packages ==="
+          sudo apt-get clean || true
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          echo "=== Disk space after cleanup ==="
+          df -h
+
+      - name: Start K3s cluster
+        uses: jupyterhub/action-k3s-helm@v4
+        with:
+          k3s-channel: latest
+          metrics-enabled: true
+          docker-enabled: true
+
+      - name: Wait until cluster is ready
+        run: ./eoapi-cli cluster wait-ready
+
+      - name: Deploy eoAPI
+        run: ./eoapi-cli deployment run
+
+      - name: Run integration tests
+        run: ./eoapi-cli test integration
+
+      - name: Run notification tests
+        run: ./eoapi-cli test notification
+
+      - name: Debug failed deployment
+        if: failure()
+        run: ./eoapi-cli deployment debug
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "=== Cleaning up Helm release and namespace ==="
+          helm uninstall "$RELEASE_NAME" -n eoapi || true
+          kubectl delete namespace eoapi || true
+          echo "=== Cleaning up Docker resources ==="
+          docker system prune -af --volumes || true
+
+  validate-docs:
+    name: Validate documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Check documentation
+        run: ./eoapi-cli docs check

@@ -18,7 +18,7 @@ tests:
           of: Deployment
       - matchRegex:
           path: metadata.name
-          pattern: ^stac-RELEASE-NAME$
+          pattern: ^RELEASE-NAME-stac$
       - equal:
           path: spec.strategy.type
           value: "RollingUpdate"
@@ -37,7 +37,21 @@ tests:
       - equal:
           path: metadata.labels.gitsha
           value: "ABC123"
-          
+
+  - it: "stac deployment includes configmap checksum annotation"
+    set:
+      stac.enabled: true
+      raster.enabled: false
+      vector.enabled: false
+      multidim.enabled: false
+    template: templates/services/stac/deployment.yaml
+    asserts:
+      - exists:
+          path: spec.template.metadata.annotations["checksum/config"]
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/config"]
+          pattern: ^[a-f0-9]{64}$
+
   - it: "stac configmap defaults"
     set:
       raster.enabled: false
@@ -50,7 +64,35 @@ tests:
           of: ConfigMap
       - matchRegex:
           path: metadata.name
-          pattern: ^stac-envvar-configmap-RELEASE-NAME$
+          pattern: ^RELEASE-NAME-stac-envvar-configmap$
       - equal:
           path: data.WEB_CONCURRENCY
           value: "5"
+
+  - it: "stac browser service"
+    set:
+      raster.enabled: false
+      stac.enabled: true
+      vector.enabled: false
+      multidim.enabled: false
+      browser.enabled: false
+      stac.annotations:
+        annotation1: hello
+        annotation2: world
+      gitSha: "ABC123"
+    template: templates/services/stac/service.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - matchRegex:
+          path: metadata.name
+          pattern: ^RELEASE-NAME-stac$
+      - matchRegex:
+          path: metadata.labels.app
+          pattern: ^RELEASE-NAME-stac$
+      - equal:
+          path: metadata.annotations.annotation1
+          value: hello
+      - equal:
+          path: metadata.annotations.annotation2
+          value: world

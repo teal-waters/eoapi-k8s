@@ -1,18 +1,8 @@
 apiVersion: v2
 name: eoapi
 description: Create a full Earth Observation API with Metadata, Raster and Vector services
-# A chart can be either an 'application' or a 'library' chart.
-#
-# Application charts are a collection of templates that can be packaged into versioned archives
-# to be deployed.
-#
-# Library charts provide useful utilities or functions for the chart developer. They're included as
-# a dependency of application charts to inject those utilities and functions into the rendering
-# pipeline. Library charts do not define any templates and therefore cannot be deployed.
 type: application
-kubeVersion: ">=1.23.0-0"
-
-# Artifacthub metadata
+kubeVersion: '>=1.23.0-0'
 icon: https://eoapi.dev/img/eoAPI.png
 annotations:
   artifacthub.io/changes: |
@@ -35,21 +25,38 @@ annotations:
     - stac
     - raster
     - vector
-
-# This is the chart version. This version number should be incremented each time you make changes
-# to the chart and its templates, including the app version.
-# Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: "0.7.5"
-
-# This is the version number of the application being deployed. This version number should be
-# incremented each time you make changes to the application. Versions are not expected to
-# follow Semantic Versioning. They should reflect the version the application is using.
-# It is recommended to use it with quotes.
-# We use the stac-fastapi-pgstac version as the app version
-appVersion: "5.0.2"
-
+version: 0.10.1
+appVersion: 6.2.0
 dependencies:
   - name: postgrescluster
     version: 5.7.4
-    repository: "https://devseed.com/eoapi-k8s/"
+    repository: https://devseed.com/eoapi-k8s/
     condition: postgrescluster.enabled
+  - name: eoapi-notifier
+    version: 0.0.9
+    repository: oci://ghcr.io/developmentseed/charts
+    condition: eoapi-notifier.enabled
+  - name: knative-operator
+    version: v1.20.0
+    repository: https://knative.github.io/operator
+    condition: knative.enabled
+  - name: metrics-server
+    version: 7.4.12
+    repository: https://charts.bitnami.com/bitnami
+    condition: monitoring.metricsServer.enabled
+  - name: prometheus
+    version: 28.4.0
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: monitoring.prometheus.enabled
+  - name: prometheus-adapter
+    version: 5.2.0
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: monitoring.prometheusAdapter.enabled
+  - name: grafana
+    version: 10.5.8
+    repository: https://grafana.github.io/helm-charts
+    condition: observability.grafana.enabled
+  - name: stac-auth-proxy
+    version: 0.11.1
+    repository: oci://ghcr.io/developmentseed/stac-auth-proxy/charts
+    condition: stac-auth-proxy.enabled
