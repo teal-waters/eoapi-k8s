@@ -1,3 +1,17 @@
+---
+title: "Unified Ingress Configuration"
+description: "NGINX and Traefik ingress setup with TLS and cert-manager integration"
+external_links:
+  - name: "eoapi-k8s Repository"
+    url: "https://github.com/developmentseed/eoapi-k8s"
+  - name: "NGINX Ingress Controller"
+    url: "https://kubernetes.github.io/ingress-nginx/"
+  - name: "Traefik Documentation"
+    url: "https://doc.traefik.io/traefik/"
+  - name: "cert-manager"
+    url: "https://cert-manager.io/"
+---
+
 # Unified Ingress Configuration
 
 This document describes the unified ingress approach implemented in the eoAPI Helm chart.
@@ -22,7 +36,7 @@ ingress:
   # ingressClassName: "nginx" or "traefik"
   className: "nginx"
   # Root path for doc server
-  rootPath: ""        
+  rootPath: ""
   # Host configuration
   host: ""
   # Custom annotations to add to the ingress
@@ -85,6 +99,23 @@ browser:
   ingress:
     enabled: true  # Can be disabled independently
 ```
+
+### Custom Ingress Solutions
+
+When using custom ingress solutions (e.g., APISIX, custom routes) where the Helm chart's ingress is disabled (`ingress.enabled: false`), you can explicitly override the STAC catalog URL for the browser:
+
+```yaml
+ingress:
+  enabled: false  # Using custom ingress solution
+
+browser:
+  enabled: true
+  catalogUrl: "https://eoapi.develop.eoepca.org/stac"  # Explicit catalog URL
+  ingress:
+    enabled: false  # Disable browser's built-in ingress
+```
+
+If `browser.catalogUrl` is not set, the URL will be automatically constructed from `ingress.host` and `stac.ingress.path`. This may result in invalid URLs (e.g., `http:///stac`) when `ingress.host` is empty.
 
 ## Setting up TLS with cert-manager
 

@@ -18,7 +18,7 @@ tests:
           of: Deployment
       - matchRegex:
           path: metadata.name
-          pattern: ^multidim-RELEASE-NAME$
+          pattern: ^RELEASE-NAME-multidim$
       - equal:
           path: spec.strategy.type
           value: "RollingUpdate"
@@ -37,7 +37,21 @@ tests:
       - equal:
           path: metadata.labels.gitsha
           value: "ABC123"
-          
+
+  - it: "multidim deployment includes configmap checksum annotation"
+    set:
+      multidim.enabled: true
+      stac.enabled: false
+      raster.enabled: false
+      vector.enabled: false
+    template: templates/services/multidim/deployment.yaml
+    asserts:
+      - exists:
+          path: spec.template.metadata.annotations["checksum/config"]
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/config"]
+          pattern: ^[a-f0-9]{64}$
+
   - it: "multidim configmap defaults"
     set:
       raster.enabled: false
@@ -50,7 +64,35 @@ tests:
           of: ConfigMap
       - matchRegex:
           path: metadata.name
-          pattern: ^multidim-envvar-configmap-RELEASE-NAME$
+          pattern: ^RELEASE-NAME-multidim-envvar-configmap$
       - equal:
           path: data.GDAL_HTTP_MULTIPLEX
           value: "YES"
+
+  - it: "multidim browser service"
+    set:
+      raster.enabled: false
+      stac.enabled: false
+      vector.enabled: false
+      multidim.enabled: true
+      browser.enabled: false
+      multidim.annotations:
+        annotation1: hello
+        annotation2: world
+      gitSha: "ABC123"
+    template: templates/services/multidim/service.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - matchRegex:
+          path: metadata.name
+          pattern: ^RELEASE-NAME-multidim$
+      - matchRegex:
+          path: metadata.labels.app
+          pattern: ^RELEASE-NAME-multidim$
+      - equal:
+          path: metadata.annotations.annotation1
+          value: hello
+      - equal:
+          path: metadata.annotations.annotation2
+          value: world

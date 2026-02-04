@@ -1,3 +1,17 @@
+---
+title: "Azure AKS Setup"
+description: "Azure configuration with managed PostgreSQL, Key Vault integration, and Workload Identity"
+external_links:
+  - name: "eoapi-k8s Repository"
+    url: "https://github.com/developmentseed/eoapi-k8s"
+  - name: "Azure Kubernetes Service Documentation"
+    url: "https://docs.microsoft.com/en-us/azure/aks/"
+  - name: "Azure CLI Documentation"
+    url: "https://docs.microsoft.com/en-us/cli/azure/"
+  - name: "Azure PostgreSQL Documentation"
+    url: "https://docs.microsoft.com/en-us/azure/postgresql/"
+---
+
 # Microsoft Azure Setup
 
 ## Using Azure Managed PostgreSQL
@@ -76,13 +90,13 @@ Use the unified PostgreSQL configuration with the `external-secret` type to conn
 postgresql:
   # Use external-secret type to get credentials from a pre-existing secret
   type: "external-secret"
-  
+
   # Basic connection information
   external:
     host: "mypostgresserver.postgres.database.azure.com"  # Can be overridden by secret values
     port: "5432"                                          # Can be overridden by secret values
     database: "eoapi"                                     # Can be overridden by secret values
-    
+
     # Reference to a secret that will be created by Azure Key Vault integration
     existingSecret:
       name: "azure-pg-credentials"
@@ -207,6 +221,27 @@ multidim:
     <<: *commonVolumeConfig
 ```
 
+## Azure Blob Storage Authentication
+
+eoAPI services (particularly the raster API) need to access COG files stored in Azure Blob Storage. With Azure Workload Identity configured (as shown above), authentication happens automatically:
+
+1. **Grant storage access** to your managed identity:
+   ```bash
+   CLIENT_ID=$(az identity show -g <resource-group> -n eoapi-identity --query clientId -o tsv)
+
+   az role assignment create \
+     --role "Storage Blob Data Reader" \
+     --assignee $CLIENT_ID \
+     --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.Storage/storageAccounts/<storage-account>
+   ```
+
+2. **Automatic authentication**: The raster service (titiler-pgstac) uses GDAL's `/vsiaz/` driver, which automatically authenticates using:
+   - Workload Identity credentials (via service account annotations)
+   - Managed Identity (if running on Azure VMs)
+   - Environment variables (if set)
+
+   No additional configuration or hardcoded credentials needed!
+
 ## Azure Managed Identity Setup
 
 To use Azure Managed Identity with your Kubernetes cluster:
@@ -225,7 +260,7 @@ To use Azure Managed Identity with your Kubernetes cluster:
    ```bash
    # Get the client ID of the managed identity
    CLIENT_ID=$(az identity show -g <resource-group> -n eoapi-identity --query clientId -o tsv)
-   
+
    # Grant access to Key Vault
    az keyvault set-policy -n <keyvault-name> --secret-permissions get list --spn $CLIENT_ID
    ```

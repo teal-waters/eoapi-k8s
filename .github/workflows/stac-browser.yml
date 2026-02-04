@@ -5,18 +5,14 @@ on:
     types: [released]
   workflow_dispatch:
     inputs:
-      TAG_NAME:
-        description: "Tag name for this image"
-        required: true
-        default: "eoapi-k8s-stac-browser"
       STAC_BROWSER_VERSION:
-        description: "STAC Browser version to build (e.g. v3.3.4)"
+        description: "STAC Browser version to build (e.g. v4.0.0)"
         required: true
-        default: "v3.3.4"
+        default: "v4.0.0"
 
 env:
   REGISTRY: ghcr.io
-  TAG_NAME: ${{ github.event.inputs.TAG_NAME || github.event.release.tag_name }}
+  STAC_BROWSER_VERSION: ${{ github.event.inputs.STAC_BROWSER_VERSION || github.event.release.tag_name }}
 
 jobs:
   build-and-push:
@@ -25,17 +21,19 @@ jobs:
 
     steps:
       - name: Checkout STAC Browser repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: radiantearth/stac-browser
-          ref: ${{ github.event.inputs.STAC_BROWSER_VERSION }}
+          ref: ${{ env.STAC_BROWSER_VERSION }}
 
       - name: Set environment variables
         run: |
-          echo VERSION=${TAG_NAME#v} >> $GITHUB_ENV
-          echo IMAGE_NAME=$REGISTRY/$(echo ${GITHUB_REPOSITORY,,})/stac-browser >> $GITHUB_ENV
-          echo COMMITED_AT=$(git show -s --format=%cI `git rev-parse HEAD`) >> $GITHUB_ENV
-          echo REVISION=$(git rev-parse --short HEAD) >> $GITHUB_ENV
+          {
+            echo "VERSION=${STAC_BROWSER_VERSION#v}"
+            echo "IMAGE_NAME=$REGISTRY/${GITHUB_REPOSITORY,,}/stac-browser"
+            echo "COMMITED_AT=$(git show -s --format=%cI "$(git rev-parse HEAD)")"
+            echo "REVISION=$(git rev-parse --short HEAD)"
+          } >> "$GITHUB_ENV"
 
       - name: Collect Docker image metadata
         id: meta
@@ -47,7 +45,8 @@ jobs:
             org.opencontainers.image.version=v${{ env.VERSION }}
             org.opencontainers.image.maintainer=${{ github.repository_owner }}
           tags: |
-            type=semver,pattern={{version}},value=v${{ env.VERSION }}
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
 
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v3
@@ -57,7 +56,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -67,5 +66,5 @@ jobs:
             pathPrefix=/browser/
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:edge
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:latest
           cache-to: type=inline
