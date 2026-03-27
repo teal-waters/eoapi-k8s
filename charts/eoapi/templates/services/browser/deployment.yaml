@@ -55,6 +55,10 @@ spec:
             - name: SB_footerLinks
               value: {{ .Values.browser.footerLinks | toJson | trimPrefix "[" | trimSuffix "]" | quote }}
             {{- end }}
+            {{- range $key, $value := .Values.browser.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
           resources:
           {{- toYaml .Values.browser.settings.resources | nindent 12 }}
 {{- end }}

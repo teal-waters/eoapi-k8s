@@ -17,14 +17,14 @@ raster:
   settings:
     labels:
       azure.workload.identity/use: "true"
-    envVars:
+    envVars: 
       AZURE_STORAGE_ACCOUNT: "tealwaters"
 
 browser:
   settings:
     labels:
       azure.workload.identity/use: "true"
-    envVars:
+    envVars: 
       AZURE_STORAGE_ACCOUNT: "tealwaters"
 
 stac:
