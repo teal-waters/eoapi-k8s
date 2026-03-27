@@ -15,7 +15,7 @@ source "${SCRIPT_DIR}/lib/k8s.sh"
 readonly RELEASE_NAME="${RELEASE_NAME:-eoapi}"
 readonly NAMESPACE="${NAMESPACE:-eoapi}"
 readonly PGO_VERSION="${PGO_VERSION:-5.7.4}"
-readonly TIMEOUT="${TIMEOUT:-6m}"
+readonly TIMEOUT="${TIMEOUT:-15m}"
 
 show_help() {
     cat <<EOF
@@ -71,15 +71,15 @@ run_deployment() {
     local helm_cmd="helm upgrade --install $RELEASE_NAME charts/eoapi -n $NAMESPACE --create-namespace"
     local testing_mode=false
 
-    if [[ -f "charts/eoapi/profiles/experimental.yaml" ]]; then
-        log_info "Applying experimental profile..."
-        helm_cmd="$helm_cmd -f charts/eoapi/profiles/experimental.yaml"
-        testing_mode=true
-    fi
-    if [[ -f "charts/eoapi/profiles/local/k3s.yaml" ]]; then
-        log_info "Applying k3s local profile..."
-        helm_cmd="$helm_cmd -f charts/eoapi/profiles/local/k3s.yaml"
-    fi
+    # if [[ -f "charts/eoapi/profiles/production.yaml" ]]; then
+    #     log_info "Applying production profile..."
+    #     helm_cmd="$helm_cmd -f charts/eoapi/profiles/production.yaml"
+    #     testing_mode=true
+    # fi
+    # if [[ -f "charts/eoapi/profiles/local/k3s.yaml" ]]; then
+    #     log_info "Applying k3s local profile..."
+    #     helm_cmd="$helm_cmd -f charts/eoapi/profiles/local/k3s.yaml"
+    # fi
     if [[ -f "scripts/values-production.yaml" ]]; then
         log_info "Applying TealWaters profile..."
         helm_cmd="$helm_cmd -f scripts/values-production.yaml"

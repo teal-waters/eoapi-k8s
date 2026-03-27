@@ -17,18 +17,28 @@ raster:
   settings:
     labels:
       azure.workload.identity/use: "true"
+    envVars:
+      AZURE_STORAGE_ACCOUNT: "tealwaters"
+
+browser:
+  settings:
+    labels:
+      azure.workload.identity/use: "true"
+    envVars:
+      AZURE_STORAGE_ACCOUNT: "tealwaters"
 
 stac:
   settings:
     labels:
       azure.workload.identity/use: "true"
+    envVars:
+      AZURE_STORAGE_ACCOUNT: "tealwaters"
+      STAC_FASTAPI_TITLE: "The TealWaters STAC Catalog"
+      STAC_FASTAPI_DESCRIPTION: >
+        The STAC endpoint is served at [https://eoapi.tealwaters.com/stac](https://eoapi.tealwaters.com/stac). This interface allows users to browser through our data products, including technical metadata and other relevant information.
 
 vector:
-  settings:
-    labels:
-      azure.workload.identity/use: "true"
+  enabled: false
 
 multidim:
-  settings:
-    labels:
-      azure.workload.identity/use: "true"
+  enabled: false
