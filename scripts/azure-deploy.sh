@@ -148,6 +148,10 @@ az role assignment create \
 echo "Creating NGINX Ingress Controller..."
 kubectl apply -f nginx-public-controller.yaml
 
+# 9b. create browser ingress (separate from main ingress to avoid rewrite-target stripping /browser prefix)
+echo "Creating browser ingress..."
+kubectl apply -f browser-ingress.yaml
+
 # 10. install cert-manager for SSL certificates
 echo "Installing cert-manager..."
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml

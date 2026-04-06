@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eoapi-browser-ingress
+  namespace: eoapi
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # No rewrite-target: the browser container's nginx expects /browser to remain
+    # in the path. The main eoapi ingress uses rewrite-target: /$2 which strips
+    # the prefix, so browser must have its own ingress object.
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: eoapi.tealwaters.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: /browser
+            backend:
+              service:
+                name: eoapi-browser
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - eoapi.tealwaters.com
+      secretName: eoapi-tls

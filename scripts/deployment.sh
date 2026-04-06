@@ -145,6 +145,11 @@ EOF
     if eval "$helm_cmd"; then
         log_success "eoAPI deployed successfully"
 
+        log_info "Applying browser ingress..."
+        # Reset SCRIPT_DIR because k8s script resets it during helm_cmd
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        kubectl apply -f "${SCRIPT_DIR}/browser-ingress.yaml"
+
         if kubectl get job -n "$NAMESPACE" -l "app=$RELEASE_NAME-pgstac-migrate" >/dev/null 2>&1; then
             log_info "Waiting for pgstac-migrate job to complete..."
             if ! kubectl wait --for=condition=complete job -l "app=$RELEASE_NAME-pgstac-migrate" -n "$NAMESPACE" --timeout=600s; then
