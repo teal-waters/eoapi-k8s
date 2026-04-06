@@ -14,8 +14,10 @@ source "${SCRIPT_DIR}/lib/k8s.sh"
 # Defaults
 readonly RELEASE_NAME="${RELEASE_NAME:-eoapi}"
 readonly NAMESPACE="${NAMESPACE:-eoapi}"
-readonly PGO_VERSION="${PGO_VERSION:-5.7.4}"
+readonly PGO_VERSION="${PGO_VERSION:-5.8.6}"
 readonly TIMEOUT="${TIMEOUT:-6m}"
+# Global array for custom values files
+declare -a VALUES_FILES=()
 
 show_help() {
     cat <<EOF
@@ -32,12 +34,16 @@ OPTIONS:
     -h, --help      Show this help message
     -d, --debug     Enable debug mode
     -n, --namespace Set Kubernetes namespace
+    -f, --values    Additional Helm values file(s) (can be specified multiple times)
     --release NAME  Helm release name (default: ${RELEASE_NAME})
     --timeout TIME  Deployment timeout (default: ${TIMEOUT})
 
 EXAMPLES:
     # Deploy eoAPI
     $(basename "$0") run
+
+    # Deploy with custom values
+    $(basename "$0") run -f examples/browser-customization.yaml
 
     # Debug deployment
     $(basename "$0") debug
@@ -71,18 +77,31 @@ run_deployment() {
     local helm_cmd="helm upgrade --install $RELEASE_NAME charts/eoapi -n $NAMESPACE --create-namespace"
     local testing_mode=false
 
-    if [[ -f "charts/eoapi/profiles/experimental.yaml" ]]; then
-        log_info "Applying experimental profile..."
-        helm_cmd="$helm_cmd -f charts/eoapi/profiles/experimental.yaml"
-        testing_mode=true
-    fi
-    if [[ -f "charts/eoapi/profiles/local/k3s.yaml" ]]; then
-        log_info "Applying k3s local profile..."
-        helm_cmd="$helm_cmd -f charts/eoapi/profiles/local/k3s.yaml"
-    fi
+    # if [[ -f "charts/eoapi/profiles/production.yaml" ]]; then
+    #     log_info "Applying production profile..."
+    #     helm_cmd="$helm_cmd -f charts/eoapi/profiles/production.yaml"
+    #     testing_mode=true
+    # fi
+    # if [[ -f "charts/eoapi/profiles/local/k3s.yaml" ]]; then
+    #     log_info "Applying k3s local profile..."
+    #     helm_cmd="$helm_cmd -f charts/eoapi/profiles/local/k3s.yaml"
+    # fi
     if [[ -f "scripts/values-production.yaml" ]]; then
         log_info "Applying TealWaters profile..."
         helm_cmd="$helm_cmd -f scripts/values-production.yaml"
+    fi
+
+    # Add custom values files
+    if [[ ${#VALUES_FILES[@]} -gt 0 ]]; then
+        for values_file in "${VALUES_FILES[@]}"; do
+            if [[ -f "$values_file" ]]; then
+                log_info "Applying custom values from: $values_file"
+                helm_cmd="$helm_cmd -f $values_file"
+            else
+                log_error "Values file not found: $values_file"
+                return 1
+            fi
+        done
     fi
 
     helm_cmd="$helm_cmd --set eoapi-notifier.config.sources[0].type=pgstac"
@@ -125,6 +144,10 @@ EOF
     local deploy_result=0
     if eval "$helm_cmd"; then
         log_success "eoAPI deployed successfully"
+
+        log_info "Applying browser ingress..."
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        kubectl apply -f "${SCRIPT_DIR}/browser-ingress.yaml"
 
         if kubectl get job -n "$NAMESPACE" -l "app=$RELEASE_NAME-pgstac-migrate" >/dev/null 2>&1; then
             log_info "Waiting for pgstac-migrate job to complete..."
@@ -263,6 +286,10 @@ main() {
                 NAMESPACE="$2"
                 shift 2
                 ;;
+            -f|--values)
+                VALUES_FILES+=("$2")
+                shift 2
+                ;;
             --release)
                 release_name="$2"
                 RELEASE_NAME="$release_name"
@@ -276,7 +303,7 @@ main() {
             run|debug)
                 command="$1"
                 shift
-                break
+                # Continue parsing remaining arguments
                 ;;
             *)
                 log_error "Unknown option: $1"
