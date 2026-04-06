@@ -146,7 +146,6 @@ EOF
         log_success "eoAPI deployed successfully"
 
         log_info "Applying browser ingress..."
-        # Reset SCRIPT_DIR because k8s script resets it during helm_cmd
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         kubectl apply -f "${SCRIPT_DIR}/browser-ingress.yaml"
 

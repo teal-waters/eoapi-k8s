@@ -76,6 +76,10 @@ stac:
       STAC_FASTAPI_DESCRIPTION: >
         The STAC endpoint is served at [https://eoapi.tealwaters.com/stac](https://eoapi.tealwaters.com/stac). This interface allows users to browser through our data products, including technical metadata and other relevant information.
 
+pgstacBootstrap:
+  settings:
+    loadSamples: false
+
 vector:
   enabled: false
 
