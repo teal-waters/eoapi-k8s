@@ -16,7 +16,9 @@ serviceAccount:
 raster:
   autoscaling:
     enabled: true
-    minReplicas: 2
+    # Zoomed-out tiles can take 20-30 CPU-seconds each, so keep enough pods
+    # warm to absorb the burst from a full-country view.
+    minReplicas: 4
     maxReplicas: 15
     # CPU only: request-rate scaling needs prometheus-adapter (custom metrics API),
     # which isn't deployed, and an unreadable metric stops the HPA from scaling.
@@ -25,7 +27,7 @@ raster:
       scaleDown:
         stabilizationWindowSeconds: 300
       scaleUp:
-        stabilizationWindowSeconds: 60
+        stabilizationWindowSeconds: 0  # React to bursts immediately
     targets:
       cpu: 60  # Lower due to resource intensity
       requestRate: 30000m  # 30 req/sec per pod
