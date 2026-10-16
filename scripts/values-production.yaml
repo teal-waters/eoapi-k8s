@@ -16,14 +16,18 @@ serviceAccount:
 raster:
   autoscaling:
     enabled: true
-    minReplicas: 2
+    # Zoomed-out tiles can take 20-30 CPU-seconds each, so keep enough pods
+    # warm to absorb the burst from a full-country view.
+    minReplicas: 4
     maxReplicas: 15
-    type: "both"
+    # CPU only: request-rate scaling needs prometheus-adapter (custom metrics API),
+    # which isn't deployed, and an unreadable metric stops the HPA from scaling.
+    type: "cpu"
     behavior:
       scaleDown:
         stabilizationWindowSeconds: 300
       scaleUp:
-        stabilizationWindowSeconds: 60
+        stabilizationWindowSeconds: 0  # React to bursts immediately
     targets:
       cpu: 60  # Lower due to resource intensity
       requestRate: 30000m  # 30 req/sec per pod
@@ -56,6 +60,9 @@ raster:
       PORT: "8080"
       WEB_CONCURRENCY: "4"
       TITILER_DEBUG: "False"
+      # Zoomed-out tiles over the lower 48 cover up to ~400 items (zoom 3).
+      # The default of 100 left blank strips where items were cut off.
+      TITILER_PGSTAC_SEARCH_ITEMS_LIMIT: "400"
 
 browser:
   ingress:
