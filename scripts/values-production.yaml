@@ -56,6 +56,9 @@ raster:
       PORT: "8080"
       WEB_CONCURRENCY: "4"
       TITILER_DEBUG: "False"
+      # Zoomed-out tiles over the lower 48 cover up to ~400 items (zoom 3).
+      # The default of 100 left blank strips where items were cut off.
+      TITILER_PGSTAC_SEARCH_ITEMS_LIMIT: "400"
 
 browser:
   ingress:
