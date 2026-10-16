@@ -18,7 +18,9 @@ raster:
     enabled: true
     minReplicas: 2
     maxReplicas: 15
-    type: "both"
+    # CPU only: request-rate scaling needs prometheus-adapter (custom metrics API),
+    # which isn't deployed, and an unreadable metric stops the HPA from scaling.
+    type: "cpu"
     behavior:
       scaleDown:
         stabilizationWindowSeconds: 300
