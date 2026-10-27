@@ -20,7 +20,7 @@ raster:
     # warm to absorb the burst from a full-country view.
     minReplicas: 4
     # Each pod can open WEB_CONCURRENCY x DB_MAX_CONN_SIZE DB connections (4 x 3 = 12).
-    # If this goes up, raise postgrescluster max_connections to match.
+    # If this, WEB_CONCURRENCY or DB_MAX_CONN_SIZE goes up, raise postgrescluster max_connections to match.
     maxReplicas: 15
     # CPU only: request-rate scaling needs prometheus-adapter (custom metrics API),
     # which isn't deployed, and an unreadable metric stops the HPA from scaling.
@@ -60,7 +60,10 @@ raster:
       # Uvicorn settings
       HOST: "0.0.0.0"
       PORT: "8080"
+      # WEB_CONCURRENCY and DB_MAX_CONN_SIZE set raster's DB connections per pod; see max_connections below.
+      # DB_MAX_CONN_SIZE is pinned here so an upstream chart default change can't silently alter it.
       WEB_CONCURRENCY: "4"
+      DB_MAX_CONN_SIZE: "3"
       TITILER_DEBUG: "False"
       # Zoomed-out tiles over the lower 48 cover up to ~400 items (zoom 3).
       # The default of 100 left blank strips where items were cut off.
