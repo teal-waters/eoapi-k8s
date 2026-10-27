@@ -19,6 +19,8 @@ raster:
     # Zoomed-out tiles can take 20-30 CPU-seconds each, so keep enough pods
     # warm to absorb the burst from a full-country view.
     minReplicas: 4
+    # Each pod can open WEB_CONCURRENCY x DB_MAX_CONN_SIZE DB connections (4 x 3 = 12).
+    # If this goes up, raise postgrescluster max_connections to match.
     maxReplicas: 15
     # CPU only: request-rate scaling needs prometheus-adapter (custom metrics API),
     # which isn't deployed, and an unreadable metric stops the HPA from scaling.
@@ -82,6 +84,17 @@ stac:
       STAC_FASTAPI_TITLE: "The TealWaters STAC Catalog"
       STAC_FASTAPI_DESCRIPTION: >
         The STAC endpoint is served at [https://eoapi.tealwaters.com/stac](https://eoapi.tealwaters.com/stac). This interface allows users to browser through our data products, including technical metadata and other relevant information.
+
+postgrescluster:
+  patroni:
+    dynamicConfiguration:
+      postgresql:
+        parameters:
+          # Raster and stac connect directly, so this must exceed their combined pool maximums
+          # or stac gets TooManyConnectionsError when raster scales out:
+          #   raster 15 pods x 4 workers x 3 = 180 (~276 mid-rollout at 50% surge)
+          #   stac    2 pods x 10 workers x 5 = 100
+          max_connections: 400
 
 pgstacBootstrap:
   settings:
