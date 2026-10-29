@@ -13,7 +13,7 @@ set -e
 # 5. Create managed identity for workload identity
 # 6. Create Kubernetes service accounts for workload identity
 # 7. Create federated identity credential to establish trust between K8s SA and Azure identity
-# 8. Grant storage access to the managed identity
+# 8. Grant storage access to the managed identity (storage account must already exist)
 # 9. Create nginx ingress controller class
 # 10. Install cert-manager for SSL certificates
 # 11. Create Let's Encrypt ClusterIssuer to issue SSL certificates
@@ -25,6 +25,8 @@ set -e
 RESOURCE_GROUP="eoapi-rg"
 LOCATION="eastus"
 CLUSTER_NAME="eoapi-aks"
+STORAGE_RESOURCE_GROUP="tealwaters"
+STORAGE_ACCOUNT="tealwaters"
 
 # Parse named arguments
 while [[ $# -gt 0 ]]; do
@@ -41,12 +43,22 @@ while [[ $# -gt 0 ]]; do
             CLUSTER_NAME="$2"
             shift 2
             ;;
+        --storage-resource-group)
+            STORAGE_RESOURCE_GROUP="$2"
+            shift 2
+            ;;
+        --storage-account)
+            STORAGE_ACCOUNT="$2"
+            shift 2
+            ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo "Options:"
             echo "  -g, --resource-group <name>   Resource group name (default: eoapi-rg)"
             echo "  -l, --location <location>     Azure region (default: eastus)"
             echo "  -n, --cluster-name <name>     AKS cluster name (default: eoapi-aks)"
+            echo "  --storage-resource-group <name>  Resource group of the existing storage account (default: tealwaters)"
+            echo "  --storage-account <name>      Existing storage account the identity can read/write (default: tealwaters)"
             echo "  -h, --help                    Show this help message"
             echo ""
             echo "Example: $0 --resource-group my-rg --location westus --cluster-name my-cluster"
@@ -64,6 +76,7 @@ echo "Creating AKS cluster with the following parameters:"
 echo "Resource Group: $RESOURCE_GROUP"
 echo "Location: $LOCATION"
 echo "Cluster Name: $CLUSTER_NAME"
+echo "Storage Account: $STORAGE_ACCOUNT (resource group $STORAGE_RESOURCE_GROUP)"
 echo ""
 
 # 1. create resource group for k8s
@@ -136,13 +149,13 @@ az identity federated-credential create \
     --subject system:serviceaccount:eoapi:eoapi-workload-identity
 
 # 8. grant storage access to the managed identity
-# Scoped to the tealwaters resource group so it can't reach restricted storage accounts (e.g. tealwaterswotus)
-echo "Granting Storage Blob Data Contributor role to managed identity..."
-SUBSCRIPTION_ID=$(az account show --query "id" -o tsv)
+# Scoped to a single storage account so it can't reach restricted ones (e.g. tealwaterswotus)
+echo "Granting Storage Blob Data Contributor role on $STORAGE_ACCOUNT to managed identity..."
+STORAGE_ACCOUNT_ID=$(az storage account show --resource-group "$STORAGE_RESOURCE_GROUP" --name "$STORAGE_ACCOUNT" --query "id" -o tsv)
 az role assignment create \
-    --assignee $IDENTITY_CLIENT_ID \
+    --assignee "$IDENTITY_CLIENT_ID" \
     --role "Storage Blob Data Contributor" \
-    --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/tealwaters"
+    --scope "$STORAGE_ACCOUNT_ID"
 
 # 9. create nginx ingress controller class
 # https://learn.microsoft.com/en-us/azure/aks/app-routing-nginx-configuration?tabs=azurecli
