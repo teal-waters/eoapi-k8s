@@ -136,12 +136,13 @@ az identity federated-credential create \
     --subject system:serviceaccount:eoapi:eoapi-workload-identity
 
 # 8. grant storage access to the managed identity
+# Scoped to the tealwaters resource group so it can't reach restricted storage accounts (e.g. tealwaterswotus)
 echo "Granting Storage Blob Data Contributor role to managed identity..."
 SUBSCRIPTION_ID=$(az account show --query "id" -o tsv)
 az role assignment create \
     --assignee $IDENTITY_CLIENT_ID \
     --role "Storage Blob Data Contributor" \
-    --scope "/subscriptions/$SUBSCRIPTION_ID"
+    --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/tealwaters"
 
 # 9. create nginx ingress controller class
 # https://learn.microsoft.com/en-us/azure/aks/app-routing-nginx-configuration?tabs=azurecli
